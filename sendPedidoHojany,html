@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <div>
+       <h3>Ingrese su pendiente de envio</h3>
+    <textarea id="wspPedido" name="peticion-wsp" 
+    placeholder="Peticion" rows="25" cols="80"></textarea>
+    <button id="btn_send_peticion">Enviar</button>
+    </div>
+    <script>
+      document.getElementById("btn_send_peticion").addEventListener("click",sendPeticion);
+      function normalower(str) {
+        str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          return str.toLowerCase();
+      }
+      /*const data = {
+          "pan" : ["magnolia", "suley", "lirio", "lesly","maby"],
+          "bla" : ["torcaza", "oriana", "aviva"],
+          "blu" : ["ayde","isamar","flor","jasiere","erasa","mayra"],
+          "ves" : ["sabash","martha"] 
+      }*/
+
+      var modeldata = {};
+      var colores = {};
+      
+      const aw_id = 'AKfycbyGSIiMZQK6Sul7ZKup84MIgyda4bcgGOWlRgMnJESxurN5cb05jZBQGj2if-kG3p88';
+      var url = 'https://script.google.com/macros/s/'+aw_id+'/exec?headcol=colores';
+      fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+        modeldata = data.model;
+        colores = data.color;
+      });
+
+      function sendPeticion(){
+        var textPedido = document.getElementById("wspPedido")
+        var arrPedido = textPedido.value.split('\n')
+        var cont_campos = 0
+        var leyendoPedido = false;
+        var faltanombre = true;
+        var faltadni = true;
+        var faltacelular = true;
+        var linePed = "";
+        const regexNro = /[0-9]+/g;
+        const regexCel = /[0-9]+[0-9\s\-]*[0-9]/g;
+        const regex = /[a-z]+[a-z0-9\/\s]*/g;
+        const regexCelN = /[cC]el.*[9][\d\s]+/g;
+        const regex_dp = /[0-9]+[a-z0-9\/\s]+/g;
+        //const regex_dp = /[\w\s-]+/g;
+        const regex_ped = /edido[:\s]+[iIjJ]/g;
+        const regex_tdp = /etalle.+edido/g;
+        const regex_lp = /y distrito[\s:]/g;
+        const regex_na = /[nN]ombre[s]? y [aA]pellido[s]?[:]?/g;
+        const itemCliente = [];
+        const itemDespacho = [];
+        const lisr = ["pan","blu","ves","abr","bla"];
+        const l_manga = ["3/4","m/l","m/c"];
+        const l_talla = ["28","s","30","m","32","l","34","xl","36","xs","26"];
+        var fechai, a_provincia=false;
+        var fecha_adicional = "", adicionales = "";
+        var irreconocible = "";
+        itemCliente[5]="";
+        for (var i = 0; i < arrPedido.length; i++) {
+          linePed = normalower(arrPedido[i]);
+          /* console.log(linePed);
+          if(regex_ped.test(linePed)){
+            let ped = linePed.split(/edido[:\s]/);
+            if(ped.length>1) itemDespacho[0]= ped[1];
+          }
+          else */
+          if(fañtanombre && regex_na.test(linePed)){
+            let na = linePed.split(/ombre[s]? y [aA]pellido[s]?[:]?/);
+            if(na.length>1) itemCliente[0]=na[1].trim();
+            if(!itemCliente[0]){
+              i++;
+              itemCliente[0] = normalower(arrPedido[i]);
+            }
+            faltanombre = false;
+          }
+          else if(/dni.*[\d\s]+/g.test(linePed)){
+            let x = linePed.split(/ni.*[:\s]+/);
+            if (x.length > 1) itemCliente[1] = x[1];
+         }
+         else if(regexCelN.test(linePed)){
+          var x = linePed.split(/el[\w\s]*[:]?/);
+          if (x.length > 1) itemCliente[2] = x[1];
+         }
+         else if(regex_tdp.test(linePed)){
+            console.log("Leyendo Pedido Activado");
+            leyendoPedido = true;
+            continue;
+         }
+         else if(linePed.includes("istrito")){
+          if (regex_lp.test(linePed)){
+            let limah = linePed.split(/y distrito[\s:]/);
+            if(limah.length>1) itemCliente[5]=limah[1].trim();
+            a_provincia=false;
+          }else{
+            let nolim = linePed.split(/istrito[\s:]/);
+            if(nolim.length>1) itemCliente[5]=nolim[1].trim();
+            a_provincia=true;
+          }
+          
+         }
+         else if(linePed.includes("provi")){
+            let limah = linePed.split(/rovincia[:\s]*/);
+            if(limah.length>1) itemCliente[4]=limah[1];
+            a_provincia=true;
+         }
+         else if(linePed.includes("depar")){
+            let limah = linePed.split(/epartamento[:\s]*/);
+            if(limah.length>1) itemCliente[3]=limah[1];
+            a_provincia=true;
+         }
+         else if(linePed.includes("fecha")&&!fechai){
+            let limah = linePed.split(":");
+            if(limah.length>1) fechai=limah[1];
+         }
+         else{
+            if(leyendoPedido){
+              if(linePed.includes("s/") ||
+                 linePed.includes("=") || 
+                 linePed.includes(":")){
+                  leyendoPedido = false;
+                  console.log("Leyendo Pedido Desactivado");
+                  continue;
+                }
+              if(regex_dp.test(linePed)){
+                let arrp = linePed.match(regex_dp)[0];
+                if(arrp.split(/\s+/).length>1){
+                  var cant = linePed.match(regexNro);
+                  var dped = linePed.match(regex);
+                  if (cant.length<1) continue;
+                  var itemVentas = [];
+                  itemVentas[4] =cant[0];
+                  if (dped.length<1) continue;
+                  let crr = dped[0].split(/\s+/);
+                  if (crr.length<1) continue;
+                  var buscartipop = true;
+                  var buscarmodel = true;
+                  var buscarcolor = true;
+                  var buscartalla = true;
+              
+                  var datatypehny;
+                  if(crr[0]){
+                    let tipe = crr[0];
+                    tipe = crr[0].slice(0, 3);
+                    if(lisr.includes(tipe)){
+                    itemVentas[0] = tipe;
+                    crr.shift();
+                    buscartipop = false;
+                    if(modeldata[tipe]) datatypehny = modeldata[tipe];
+                    }
+                  }
+
+                  var noident = [];
+                  var manga = "";
+                  var count = 0;
+                  for (var j=0;j<crr.length;j++){
+                    let crrj = crr[j];
+                    let crrjlen = crrj.length;
+
+                    if(buscarmodel && j<2 && datatypehny &&
+                       datatypehny.includes(crrj)){
+                        itemVentas[1] = crrj;
+                        buscarmodel = false;
+                    }
+                    else if(buscartipop){
+                      if(crrjlen > 2){
+                        let tipehjy = crrj.slice(0, 3);
+                        if(lisr.includes(tipehjy)){
+                          itemVentas[0] = tipehjy;
+                          buscartipop = false;
+                          if(modeldata[tipehjy]){
+                            datatypehny = modeldata[tipehjy];
+                          }
+                        }
+                      }else{
+                          if(l_talla.includes(crrj)){
+                            itemVentas[3]=crrj;
+                            buscartalla = false;
+                          }else irreconocible += " "+crrj;
+                      }
+                    }
+                    else if(crrjlen<3 && l_talla.includes(crrj)){
+                      itemVentas[3]=crrj;
+                      buscartalla = false;
+                      console.log("buscartalla",crrj)
+                    }
+                    else{
+                      let penh = (j < crr.length-1);
+                      if(itemVentas[0]!="pan" && manga==''){
+                        let mnga = (crrj=="manga");//138 aqui - 122 codigo
+                        let prev = crr[j-1];
+                        if(penh && mnga){
+                          crrj = crr[j+1];
+                          manga = getManga(crrj);
+                          if(manga == "3/4" && 
+                          crr[j+2].startsWith("cuar")) j=j+2;
+                        }
+                        if ( manga=="" && l_manga.includes(crrj))manga = crrj;
+              
+                        if(mnga || manga!=""){
+                          if(buscarmodel){
+                            if(modeldata[itemVentas[0]].includes(prev)){
+                              itemVentas[1] = prev;
+                              buscarmodel = false;
+                              noident.pop();
+                            }
+                          }
+                          continue;
+                        }
+                      }
+                      if(penh) {
+                        if(crrj=="color"){
+                          j++;
+                          itemVentas[2] = crr[j];
+                          buscarcolor = false;
+                        }
+                        else if(crrj=="talla"){
+                          j++;
+                          if(l_talla.includes(crr[j])){
+                            itemVentas[3] = crr[j];
+                            buscartalla = false; 
+                          }
+                        }
+                        else if(crrj=="modelo"){
+                          j++;
+                          if(datatypehny && datatypehny.includes(crr[j])){
+                            itemVentas[1] = crr[j];
+                            buscarmodel = false;  
+                          } 
+                        }else noident.push(crrj);
+                      }else{
+                        if(crrjlen < 4 && l_talla.includes(crrj)){
+                            itemVentas[3]=crrj;
+                            buscartalla = false;
+                        }else noident.push(crrj);
+                      }
+                    }                 
+                  }
+                  console.log(buscartipop, buscarmodel, buscartalla);
+                  if(!(buscartipop || buscarmodel || buscartalla)){
+                    if(buscarcolor){
+                      itemVentas[2] = noident.join(" ");
+                    }else{
+                      itemVentas[2] += noident.join(" ");
+                    }
+                    if(manga!="") itemVentas[1]+=" "+manga;
+                  }else{
+                    console.log("No Identificados", noident);
+                    /*No cumple una de las condiciones
+                    if(buscarmodel){
+                      if(datatypehny && datatypehny.includes(crr[j])){
+                      itemVentas[1] = crr[j];
+                      buscarmodel = false;
+                      }
+                    }else{
+                      noident.push(crr[j]);
+                      console.log("nada de nada");
+                    }*/
+                  }
+                  console.log(fechai,itemVentas);
+                }
+              }else{
+                console.log("No es formato estandar de Pedido");
+              }
+/*             else{
+              var twop = linePed.split(':');
+              if(twop.length>1){
+                console.log(twop[1],linePed);
+              }
+            }  */         
+          }
+        //google.script.run.generarPedido(textPedido.value)
+       }
+        }
+       if(!a_provincia){
+        itemCliente[3]='Lima';
+        itemCliente[4]='Lima';
+       }
+       console.log(itemCliente);
+       //google.script.run.generarPedido([[23,45]]);
+      }
+      function getManga(smng){
+        let pmng = smng.slice(0, 4);
+        var ret;
+        if(pmng == "larg") ret = "m/l";
+        else if(pmng == "cort") ret = "m/c";
+        else if(pmng == "tres") ret = "3/4";
+        return ret;
+      }
+    </script>
+  </body>
+</html>
